@@ -20,13 +20,13 @@ public class NPCEvent {
     public boolean displayHealthAngerMeter;
 
     public float doorKnockTimer, doorKnockWaitTimer, doorEnterTimer, speechBubbleTimer;
-    public int doorKnockCount;
+    public int doorEnterDir, doorKnockCount;
 
     // Constructor //
     public NPCEvent(int idNum) {
         this.idNum = idNum;
 
-        displayHealthAngerMeter = true;
+        displayHealthAngerMeter = false;
         percentHealth = 1.0f;
         healthMeterDisplayPercent = percentHealth;
         percentAnger = 0.0f;
@@ -35,6 +35,7 @@ public class NPCEvent {
         doorKnockTimer = 1.0f;
         doorKnockWaitTimer = 0.0f;
         doorEnterTimer = 0.0f;
+        doorEnterDir = 1;
         doorKnockCount = 0;
 
         speechBubbleTimer = -1.0f;
@@ -44,13 +45,22 @@ public class NPCEvent {
 
         // Door Open //
         if(GameState.door.openStateLeft) {
-            if(doorEnterTimer < 1.0) {
+
+            // Enter Door //
+            if(doorEnterDir == 1 && doorEnterTimer < 1.0) {
                 doorEnterTimer += .05;
                 if(doorEnterTimer >= 1.0) {
                     rectBody = new Rectangle(190, 435, 50, 280);
                     rectHead = new Rectangle(240, 690, 80, 85);
                     speechBubbleTimer = 0.0f;
                 }
+            }
+
+            // Exit Door //
+            else if(doorEnterDir == 2 && doorEnterTimer > 0.0) {
+                doorEnterTimer -= .05;
+                if(doorEnterTimer <= 0.0 && GameState.npcDoorEventList.size == 1)
+                    GameState.door.openStateLeft = false;
             }
 
             // Speech Bubble Animation //
@@ -64,7 +74,7 @@ public class NPCEvent {
             if(displayHealthAngerMeter) {
 
                 // Update Meter //
-                float oldHealthMeterDisplayDifference = healthMeterDisplayDifference;
+                float oldHealthMeterDisplayPercent = healthMeterDisplayPercent;
                 if((healthMeterDisplayDir == 1 && healthMeterDisplayDifference > 0.00005)
                 || (healthMeterDisplayDir == -1 && healthMeterDisplayDifference < 0.00005)) {
                     healthMeterDisplayPercent += healthMeterDisplayDifferenceTotal * healthMeterIncrementPercent;
@@ -77,12 +87,28 @@ public class NPCEvent {
                     angerMeterDisplayDifference -= angerMeterDisplayDifferenceTotal * angerMeterIncrementPercent;
                     angerMeterIncrementPercent *= .975;
                 }
+                if(displayHealthAngerMeter && healthMeterIncrementPercent < .00025)
+                    displayHealthAngerMeter = false;
+
+                // Anger Check //
+                if(angerMeterDisplayPercent >= 1.0f) {
+                    healthMeterDisplayDir = 1;
+                    angerMeterDisplayDir = 1;
+                    healthMeterDisplayDifference = 0.0f;
+                    angerMeterDisplayDifference = 0.0f;
+                }
 
                 // Quarter-Percent Health Check //
-//                if(healthMeterDisplayDifference % .25f > oldHealthMeterDisplayDifference % .25f)
-//                    Gdx.app.log("DebugMessage", "HI");
-                    Gdx.app.log("DebugMessage", String.valueOf(healthMeterDisplayDifference % .25f));
-                    Gdx.app.log("DebugMessage", String.valueOf(oldHealthMeterDisplayDifference % .25f));
+                else if(healthMeterDisplayPercent % .25f > oldHealthMeterDisplayPercent % .25f && healthMeterDisplayPercent < .75f) {
+                    healthMeterDisplayDir = 1;
+                    angerMeterDisplayDir = 1;
+                    healthMeterDisplayDifference = 0.0f;
+                    angerMeterDisplayDifference = 0.0f;
+
+                    speechBubbleTimer = -1.0f;
+                    displayHealthAngerMeter = false;
+                    doorEnterDir = 2;
+                }
             }
         }
 
@@ -190,6 +216,8 @@ public class NPCEvent {
         if(percentAnger > 1.0)
             percentAnger = 1.0f;
         setMeter("Anger");
+
+        displayHealthAngerMeter = true;
 
         GameState.movingObjectDeleteList.add(objectIndex);
     }

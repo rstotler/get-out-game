@@ -163,8 +163,11 @@ public class GameState extends State {
         }
 
         // NPC Events //
-        if(npcDoorEventList.size > 0)
+        if(npcDoorEventList.size > 0) {
             npcDoorEventList.get(0).update();
+            if(npcDoorEventList.get(0).doorEnterDir == 2 && npcDoorEventList.get(0).doorEnterTimer <= 0.0)
+                npcDoorEventList.removeIndex(0);
+        }
     }
 
     @Override
